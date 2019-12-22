@@ -6,9 +6,9 @@ pool:
 
 steps:
 - powershell: |
-    git clone https://github.com/bkaradzic/bx 
-    git clone https://github.com/bkaradzic/bimg 
-    git clone https://github.com/bkaradzic/bgfx
+    git clone https://github.com/bkaradzic/bx bx
+    git clone https://github.com/bkaradzic/bimg bimg
+    git clone https://github.com/bkaradzic/bgfx bgfx
     cd bgfx 
     ..\bx\tools\bin\windows\genie --with-tools --with-shared-lib vs2019
     Get-ChildItem -Recurse
