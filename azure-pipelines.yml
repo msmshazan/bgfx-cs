@@ -5,14 +5,7 @@ pool:
   vmImage: 'windows-2019'
 
 steps:
-- powershell: git clone https://github.com/bkaradzic/bx bx
-  displayName: Fetch bx
-- powershell: git clone https://github.com/bkaradzic/bimg bimg
-  displayName: Fetch bimg
-- powershell: git clone https://github.com/bkaradzic/bgfx bgfx
-  displayName: Fetch bgfx
 - powershell: |
-    cd bgfx 
-    ..\bx\tools\bin\windows\genie --with-tools --with-shared-lib vs2019
+    build.ps1
     Get-ChildItem -Recurse
   displayName: 'Setup for build'
