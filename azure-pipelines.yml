@@ -6,6 +6,6 @@ pool:
 
 steps:
 - powershell: |
-    build.ps1
+    .\build.ps1
     Get-ChildItem -Recurse
   displayName: 'Setup for build'
