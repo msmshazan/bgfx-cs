@@ -1,2 +1,6 @@
-cd bgfx 
-&"..\bx\tools\bin\windows\genie" --with-tools --with-shared-lib vs2019
+.\setupshell.ps1
+cd BGFX.Net
+msbuild BGFX.Net.sln /P:'Configuration=Release'
+msbuild BGFX.Net.sln /P:'Configuration=Release;Platform=x64'
+msbuild BGFX.Net.sln /P:'Configuration=Release;Platform=x86'
+cd ..

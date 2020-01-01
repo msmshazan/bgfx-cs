@@ -1,0 +1,132 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+  ******************************************************************************
+  **                          Load Per-User Settings                          **
+  ******************************************************************************
+  -->
+
+  <!--
+      NOTE: If the per-user settings file exists, import it now.  The contained
+            settings, if any, will override the default ones provided below.
+  -->
+  <Import Condition="'$(MSBuildThisFileDirectory)' != '' And
+                     HasTrailingSlash('$(MSBuildThisFileDirectory)') And
+                     Exists('$(MSBuildThisFileDirectory)BGFX.Net.targets.user')"
+          Project="$(MSBuildThisFileDirectory)BGFX.Net.targets.user" />
+
+  <!--
+  ******************************************************************************
+  **                    BGFX Interop Library Build Items                    **
+  ******************************************************************************
+  -->
+
+  <ItemGroup>
+    <BGFXInteropFiles Condition="'$(MSBuildThisFileDirectory)' != '' And
+                                   HasTrailingSlash('$(MSBuildThisFileDirectory)')"
+                        Include="$(MSBuildThisFileDirectory)**\BGFX.Interop.*" />
+  </ItemGroup>
+
+  <!--
+  ******************************************************************************
+  **                   BGFX Interop Library Content Items                   **
+  ******************************************************************************
+  -->
+
+  <ItemGroup Condition="'$(ContentBGFXInteropFiles)' != '' And
+                        '$(ContentBGFXInteropFiles)' != 'false' And
+                        '@(BGFXInteropFiles)' != ''">
+    <Content Include="@(BGFXInteropFiles)">
+      <Link>%(RecursiveDir)%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!--
+  ******************************************************************************
+  **                   BGFX Interop Library Build Targets                   **
+  ******************************************************************************
+  -->
+
+  <Target Name="CopyBGFXInteropFiles"
+          Condition="'$(CopyBGFXInteropFiles)' != 'false' And
+                     '$(OutDir)' != '' And
+                     HasTrailingSlash('$(OutDir)') And
+                     Exists('$(OutDir)')"
+          Inputs="@(BGFXInteropFiles)"
+          Outputs="@(BGFXInteropFiles -> '$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')">
+    <!--
+        NOTE: Copy "BGFX.Interop.dll" and all related files, for every
+              architecture that we support, to the build output directory.
+    -->
+    <Copy SourceFiles="@(BGFXInteropFiles)"
+          DestinationFiles="@(BGFXInteropFiles -> '$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+
+  <!--
+  ******************************************************************************
+  -->
+
+  <Target Name="CleanBGFXInteropFiles"
+          Condition="'$(CleanBGFXInteropFiles)' != 'false' And
+                     '$(OutDir)' != '' And
+                     HasTrailingSlash('$(OutDir)') And
+                     Exists('$(OutDir)')">
+    <!--
+        NOTE: Delete "BGFX.Interop.dll" and all related files, for every
+              architecture that we support, from the build output directory.
+    -->
+    <Delete Files="@(BGFXInteropFiles -> '$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+
+  <!--
+  ******************************************************************************
+  -->
+
+  <Target Name="CollectBGFXInteropFiles"
+          Condition="'$(CollectBGFXInteropFiles)' != 'false'">
+    <ItemGroup>
+      <FilesForPackagingFromProject Include="@(BGFXInteropFiles)">
+        <DestinationRelativePath>bin\%(RecursiveDir)%(Filename)%(Extension)</DestinationRelativePath>
+      </FilesForPackagingFromProject>
+    </ItemGroup>
+  </Target>
+
+  <!--
+  ******************************************************************************
+  **                 BGFX Interop Library Build Properties                  **
+  ******************************************************************************
+  -->
+
+  <PropertyGroup>
+    <PostBuildEventDependsOn>
+      $(PostBuildEventDependsOn);
+      CopyBGFXInteropFiles;
+    </PostBuildEventDependsOn>
+    <BuildDependsOn>
+      $(BuildDependsOn);
+      CopyBGFXInteropFiles;
+    </BuildDependsOn>
+    <CleanDependsOn>
+      $(CleanDependsOn);
+      CleanBGFXInteropFiles;
+    </CleanDependsOn>
+  </PropertyGroup>
+
+  <!--
+  ******************************************************************************
+  **     BGFX Interop Library Publish Properties for Visual Studio 201x     **
+  ******************************************************************************
+  -->
+
+  <PropertyGroup Condition="'$(VisualStudioVersion)' == '' Or
+                            '$(VisualStudioVersion)' == '10.0' Or
+                            '$(VisualStudioVersion)' == '11.0' Or
+                            '$(VisualStudioVersion)' == '12.0' Or
+                            '$(VisualStudioVersion)' == '14.0' Or
+                            '$(VisualStudioVersion)' == '15.0'">
+    <PipelineCollectFilesPhaseDependsOn>
+      CollectBGFXInteropFiles;
+      $(PipelineCollectFilesPhaseDependsOn);
+    </PipelineCollectFilesPhaseDependsOn>
+  </PropertyGroup>
+</Project>

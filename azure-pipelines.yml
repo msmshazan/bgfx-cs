@@ -6,6 +6,15 @@ pool:
 
 steps:
 - powershell: |
+    .\genbgfx.ps1
+  displayName: 'Generate BGFX solutions'
+- powershell: |
+    .\buildbgfx.ps1
+  displayName: 'Build BGFX solutions'
+- powershell: |
     .\build.ps1
-    Get-ChildItem -Recurse
-  displayName: 'Setup for build'
+  displayName: 'Build BGFX.Net'
+- powershell: |
+    .\packbinary.ps1
+  displayName: 'Package binary'
+

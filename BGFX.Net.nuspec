@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>BGFX.Net</id>
+    <version>0.1.0</version>
+    <title>C# bindings for BGFX</title>
+    <authors>msmshazan,bkaradzic</authors>
+    <owners>msmshazan</owners>
+	<requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectUrl>https://github.com/msmshazan/bgfx-cs</projectUrl>
+    <description>C# bindings for BGFX</description>
+    <releaseNotes>Initial Release</releaseNotes>
+    <copyright>Copyright 2019</copyright>
+    <tags>BGFX Graphics .Net C#</tags>
+   <dependencies>
+		<group targetFramework="net45">
+    	</group>
+	</dependencies>
+  </metadata>
+  <files>
+	<file src="bgfx\.build\win64_vs2019\bin\bgfx-shared-libRelease.dll" target="runtimes\win-x64\native\net45\BGFX.Interop.dll" />
+    <file src="bgfx\.build\win32_vs2019\bin\bgfx-shared-libRelease.dll" target="runtimes\win-x86\native\net45\BGFX.Interop.dll" />
+    <file src="bgfx\.build\win64_vs2019\bin\bgfx-shared-libRelease.dll" target="build\net45\x64\BGFX.Interop.dll" />
+    <file src="bgfx\.build\win32_vs2019\bin\bgfx-shared-libRelease.dll" target="build\net45\x86\BGFX.Interop.dll" />
+    <file src="BGFX.Net\BGFX.Net\bin\Release\*.dll" target="lib\net45" />
+	<file src="BGFX.Net\BGFX.Net\BGFX.Net.targets" target="build\net45" />
+  </files>
+</package>
