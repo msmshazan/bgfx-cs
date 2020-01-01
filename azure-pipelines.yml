@@ -5,6 +5,9 @@ pool:
   vmImage: 'windows-2019'
 
 steps:
+- checkout: self
+  submodules: true
+  lfs: true
 - powershell: |
     .\genbgfx.ps1
   displayName: 'Generate BGFX solutions'
