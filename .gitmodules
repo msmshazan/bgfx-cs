@@ -1,3 +1,16 @@
 [submodule "BGFX.Net/SDL2-CS"]
 	path = BGFX.Net/SDL2-CS
 	url = https://github.com/flibitijibibo/SDL2-CS.git
+
+[submodule "bgfx"]
+	path = bgfx
+	url = https://github.com/bkaradzic/bgfx.git
+
+[submodule "bimg"]
+	path = bimg
+	url = https://github.com/bkaradzic/bimg.git
+
+[submodule "bx"]
+	path = bx
+	url = https://github.com/bkaradzic/bx.git
+
