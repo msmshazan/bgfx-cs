@@ -1,6 +1,7 @@
 trigger:
 - master
-
+variables:
+  IS_PIPELINE: 'true'
 pool:
   vmImage: 'windows-2019'
 
