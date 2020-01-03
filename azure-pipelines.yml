@@ -10,6 +10,7 @@ steps:
   submodules: true
   lfs: true
 - powershell: |
+    &choco install nuget.commandline
     .\genbgfx.ps1
   displayName: 'Generate BGFX solutions'
 - powershell: |
