@@ -4514,18 +4514,7 @@ namespace BGFX.Net
 		[DllImport(DllName, EntryPoint = "bgfx_blit", CallingConvention = CallingConvention.Cdecl)]
 		public static extern void blit(ushort _id, TextureHandle _dst, byte _dstMip, ushort _dstX, ushort _dstY, ushort _dstZ, TextureHandle _src, byte _srcMip, ushort _srcX, ushort _srcY, ushort _srcZ, ushort _width, ushort _height, ushort _depth);
 
-
-
-		#if !BGFX_CSHARP_CUSTOM_DLLNAME
-		#if PLATFORM_X86
-		 const string DllName = "x86/BGFX.Interop.dll";
-		#elif PLATFORM_X64
-		 const string DllName = "x64/BGFX.Interop.dll";
-		#elif PLATFORM_ANYCPU
-		 const string DllName = "x86/BGFX.Interop.dll";
-		#endif
-		#endif
-		
+		 const string DllName = "BGFX.Interop.dll";
 	}
 
 

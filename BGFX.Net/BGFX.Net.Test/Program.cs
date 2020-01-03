@@ -9,10 +9,26 @@ using SDL2;
 
 namespace BGFX.Net.Test
 {
+    public static class NativeMethods
+    {
+        [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Ansi)]
+        public static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPStr)]string lpFileName);
+    }
+
     class Program
     {
         static unsafe void Main(string[] args)
         {
+            var platform = "x64";
+            if(IntPtr.Size == 4)
+            {
+                platform = "x86";
+            }
+
+            {
+                NativeMethods.LoadLibrary($"{platform}/SDL2.dll");
+                NativeMethods.LoadLibrary($"{platform}/BGFX.Interop.dll");
+            }
             var windowhandle = SDL.SDL_CreateWindow("hello", 10,10, 800, 600, SDL.SDL_WindowFlags.SDL_WINDOW_RESIZABLE);
             SDL.SDL_SysWMinfo wm = new SDL.SDL_SysWMinfo();
             SDL.SDL_GetWindowWMInfo(windowhandle,ref wm);

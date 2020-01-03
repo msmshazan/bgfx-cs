@@ -115,4 +115,5 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="BGFX.Net.Test.targets" />
 </Project>

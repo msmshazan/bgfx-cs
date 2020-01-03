@@ -1,0 +1,8 @@
+<Project>
+	<Target Name="AfterBuild">
+        <Copy SourceFiles="..\..\bgfx\.build\win64_vs2019\bin\bgfx-shared-libRelease.dll" DestinationFiles="$(OutputPath)\x64\BGFX.Interop.dll" />
+		<Copy SourceFiles="..\..\bgfx\.build\win32_vs2019\bin\bgfx-shared-libRelease.dll" DestinationFiles="$(OutputPath)\x86\BGFX.Interop.dll" />
+		<Copy SourceFiles="..\..\SDL2\x64\SDL2.dll" DestinationFiles="$(OutputPath)\x64\SDL2.dll" />
+		<Copy SourceFiles="..\..\SDL2\x86\SDL2.dll" DestinationFiles="$(OutputPath)\x86\SDL2.dll" />
+    </Target>
+</Project>
