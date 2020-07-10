@@ -77,6 +77,7 @@ namespace BGFX.Net
             public static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPStr)] string lpFileName);
         }
 
+       
     }
 
 
@@ -1966,13 +1967,13 @@ namespace BGFX.Net
             }
         }
 
-        public static void Initialize(uint resolutionWidth,uint resolutionHeight)
+        public static void Initialize(uint resolutionWidth,uint resolutionHeight,RendererType renderer)
         {
             UnsafeBgfx.Init init = new UnsafeBgfx.Init();
             unsafe
             {
                 UnsafeBgfx.init_ctor(&init);
-                init.type = UnsafeBgfx.RendererType.Direct3D9;
+                init.type = (UnsafeBgfx.RendererType) renderer;
                 init.vendorId = (ushort)UnsafeBgfx.PciIdFlags.None;
                 init.resolution.width = resolutionWidth;
                 init.resolution.height = resolutionHeight;
@@ -2037,12 +2038,9 @@ namespace BGFX.Net
 
         }
 
-        public static void SetDebug(uint flag)
+        public static void SetDebug(DebugFlags flag)
         {
-            unsafe
-            {
-                UnsafeBgfx.set_debug(flag);
-            }
+            UnsafeBgfx.set_debug((uint) flag);
         }
 
         public static void SetViewMode(ushort i, ViewMode sequential)
@@ -2065,42 +2063,235 @@ namespace BGFX.Net
             UnsafeBgfx.set_view_rect(p0,p1,p2,resolutionWidth,resolutionHeight);
         }
 
-        public static void SetViewTransform(ushort viewId, IntPtr zero, IntPtr orthoPtr)
+        public static void SetViewTransform(ushort viewId, float[] view, float[] projection)
         {
             unsafe
             {
-                UnsafeBgfx.set_view_transform(viewId, zero.ToPointer(), orthoPtr.ToPointer());
+                UnsafeBgfx.set_view_transform(viewId, view != null ?  Unsafe.AsPointer(ref view[0]) : null,projection != null ? Unsafe.AsPointer(ref projection[0]):null);
             }
         }
 
         public struct BgfxCaps
         {
             public UnsafeBgfx.Caps caps;
+            public bool Homogenousdepth => (caps.homogeneousDepth != 0);
+        }
 
+        public struct TransientVertexBuffer
+        {
+            public UnsafeBgfx.TransientVertexBuffer tvb;
+
+            public void CopyIntoBuffer(IntPtr source,uint size)
+            {
+                unsafe
+                {
+                    Unsafe.CopyBlock(tvb.data,source.ToPointer(),size);
+                }
+            }
+        }
+
+        public struct TransientIndexBuffer
+        {
+            public UnsafeBgfx.TransientIndexBuffer tib;
+            public void CopyIntoBuffer(IntPtr source, uint size)
+            {
+                unsafe
+                {
+                    Unsafe.CopyBlock(tib.data, source.ToPointer(), size);
+                }
+            }
+        }
+
+        
+
+        public struct VertexLayout
+        {
+            public UnsafeBgfx.VertexLayout vertexLayout;
+
+            public void Begin(RendererType rendererType)
+            {
+                unsafe
+                {
+                    UnsafeBgfx.vertex_layout_begin((UnsafeBgfx.VertexLayout*)Unsafe.AsPointer(ref vertexLayout), (UnsafeBgfx.RendererType)rendererType);
+                }
+            }
+
+            public void Add(Attrib attrib,AttribType attribType,byte num, bool normalized,bool asInt)
+            {
+                unsafe
+                {
+                    UnsafeBgfx.vertex_layout_add((UnsafeBgfx.VertexLayout*)Unsafe.AsPointer(ref vertexLayout), (UnsafeBgfx.Attrib)attrib,num, (UnsafeBgfx.AttribType)attribType,normalized,asInt);
+                }
+            }
+
+            public void End()
+            {
+                unsafe
+                {
+                    UnsafeBgfx.vertex_layout_end((UnsafeBgfx.VertexLayout*) Unsafe.AsPointer(ref vertexLayout));
+                }
+            }
+        }
+
+        public static TransientVertexBuffer AllocateTransientVertexBuffer(uint num,VertexLayout layout)
+        {
+            var result = new TransientVertexBuffer();
+            unsafe
+            {
+                UnsafeBgfx.alloc_transient_vertex_buffer(&result.tvb,num,&layout.vertexLayout);   
+            }
+            return result;
+        }
+        public static TransientIndexBuffer AllocateTransientIndexBuffer(uint num)
+        {
+            var result = new TransientIndexBuffer();
+            unsafe
+            {
+                UnsafeBgfx.alloc_transient_index_buffer(&result.tib,num);
+            }
+            return result;
         }
 
         public static BgfxCaps GetCaps()
         {
             var caps = new BgfxCaps();
             unsafe
-            { 
+            {
                 caps.caps = (*UnsafeBgfx.get_caps());
             }
             return caps;
         }
+
+        public struct ShaderHandle
+        {
+            public UnsafeBgfx.ShaderHandle shader;
+        }
+        public struct ProgramHandle
+        {
+            public UnsafeBgfx.ProgramHandle program;
+        }
+        public struct Uniform
+        {
+            public UnsafeBgfx.UniformHandle handle;
+        }
+
+        public static ShaderHandle CreateShader(byte[] bytes)
+        {
+            var shader = new ShaderHandle();
+            unsafe
+            {
+                var data = CopyIntoBuffer(bytes);
+                shader.shader = UnsafeBgfx.create_shader(data);
+            }
+            return shader;
+        }
+
+        public static ProgramHandle CreateProgram(ShaderHandle vertex,ShaderHandle fragment,bool destroyShader)
+        {
+            var program = new ProgramHandle
+            {
+                program = UnsafeBgfx.create_program(vertex.shader, fragment.shader, destroyShader)
+            };
+            return program;
+        }
+
+        public static Uniform CreateUniform(string name, UniformType type, ushort num)
+        {
+            var uniform = new Uniform
+            {
+                handle = UnsafeBgfx.create_uniform(name, (UnsafeBgfx.UniformType) type, num)
+            };
+            return uniform;
+        }
         public struct TextureHandle
         {
             public UnsafeBgfx.TextureHandle handle;
-            public ushort idx => handle.idx;
+
+            public ushort Idx
+            {
+                get => handle.idx;
+                set => handle.idx = value;
+            }
         }
-        public static TextureHandle CreateTexture2D(ushort outWidth, ushort outHeight, bool b, ushort i, TextureFormat bgra8, ulong minPoint, IntPtr makeRef)
+        public static TextureHandle CreateTexture2D(ushort outWidth, ushort outHeight, bool b, ushort i, TextureFormat bgra8, SamplerFlags flags, IntPtr makeRef)
         {
             unsafe
             {
-                var texhandle = new TextureHandle();
-                texhandle.handle = UnsafeBgfx.create_texture_2d(outWidth,outHeight,b,i, (UnsafeBgfx.TextureFormat)bgra8,minPoint, (UnsafeBgfx.Memory*)makeRef.ToPointer());
-                return texhandle;
+                var texHandle = new TextureHandle
+                {
+                    handle = UnsafeBgfx.create_texture_2d(outWidth, outHeight, b, i, (UnsafeBgfx.TextureFormat)bgra8, (ulong)flags, (UnsafeBgfx.Memory*)makeRef.ToPointer())
+                };
+                return texHandle;
             }
+        }
+
+        private static unsafe UnsafeBgfx.Memory* CopyIntoBuffer<T>(T[] bytes)
+        {
+            var size = (uint)(bytes.Length * Unsafe.SizeOf<T>());
+            var data = UnsafeBgfx.alloc(size);
+            Unsafe.CopyBlock(data->data, Unsafe.AsPointer(ref bytes[0]), size);
+            return data;
+        }
+
+        public static TextureHandle CreateTexture2D<T>(ushort outWidth, ushort outHeight, bool b, ushort i, TextureFormat bgra8, SamplerFlags flags,T[] pixelBytes) where T : struct 
+        {
+            unsafe
+            {
+                var data = CopyIntoBuffer(pixelBytes);
+                var texHandle = new TextureHandle
+                {
+                    handle = UnsafeBgfx.create_texture_2d(outWidth, outHeight, b, i, (UnsafeBgfx.TextureFormat) bgra8,(ulong) flags, data)
+                };
+                return texHandle;
+            }
+        }
+        public static void SetState(StateFlags state,uint rgba)
+        {
+            UnsafeBgfx.set_state((ulong)state,rgba);
+        }
+        
+        public static void SetTexture(byte state,Uniform uniform,TextureHandle texture,TextureFlags flags = (TextureFlags)uint.MaxValue)
+        {
+            UnsafeBgfx.set_texture(state,uniform.handle,texture.handle,(uint)flags);
+        }
+
+        public static void SetTransientVertexBuffer(byte stream, TransientVertexBuffer tvb, uint startVertex,
+            uint numVertices)
+        {
+            unsafe
+            {
+                UnsafeBgfx.set_transient_vertex_buffer(stream, &tvb.tvb, startVertex, numVertices);
+            }
+        }
+
+        public static void SetTransientIndexBuffer(TransientIndexBuffer tib, uint firstIndex, uint numIndices)
+        {
+            unsafe
+            {
+                UnsafeBgfx.set_transient_index_buffer(&tib.tib,firstIndex,numIndices);
+            }
+        }
+
+        public static void SetScissor(ushort x, ushort y, ushort width, ushort height)
+        {
+            UnsafeBgfx.set_scissor(x, y,width,height);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static StateFlags STATE_BLEND_FUNC(StateFlags src,StateFlags dst)
+        {
+            return STATE_BLEND_FUNC_SEPARATE(src, dst, src, dst);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static StateFlags STATE_BLEND_FUNC_SEPARATE(StateFlags srcRGB,StateFlags dstRGB,StateFlags srcA,StateFlags dstA)
+        {
+            return(StateFlags)( (ulong)(srcRGB) | ((ulong)(dstRGB) << 4)| (ulong)(srcA) | (((ulong)(dstA) << 4) << 8)) ;
+        }
+
+        public static void Submit(ushort viewId, ProgramHandle program, uint depth, bool flags)
+        {
+            UnsafeBgfx.submit(viewId, program.program, depth, (byte)(flags ? 1: 0));
         }
     }
 }
