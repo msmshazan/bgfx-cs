@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Numerics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SDL2;
@@ -53,7 +54,7 @@ namespace BGFX.Net.Test
             _result[14] = ff;
             _result[15] = 1.0f;
         }
- 
+
         private static void Main(string[] args)
         {
             var platform = "x64";
@@ -67,13 +68,12 @@ namespace BGFX.Net.Test
             var wm = new SDL.SDL_SysWMinfo();
             SDL.SDL_GetWindowWMInfo(windowhandle, ref wm);
             Bgfx.SetPlatformData(wm.info.win.window);
-            Bgfx.Initialize(resolutionWidth, resolutionHeight,Bgfx.RendererType.DIRECT_3D11);
+            var init = Bgfx.Initialize(resolutionWidth, resolutionHeight, Bgfx.RendererType.DIRECT_3D11);
             ImGui.SetCurrentContext(ImGui.CreateContext());
             var IO = ImGui.GetIO();
             IO.ImeWindowHandle = wm.info.win.window;
-            IO.BackendFlags |= ImGuiBackendFlags.HasMouseCursors; // We can honor GetMouseCursor() values (optional)
-            IO.BackendFlags |=
-                ImGuiBackendFlags.HasSetMousePos; // We can honor io.WantSetMousePos requests (optional, rarely used)
+            //IO.BackendFlags |= ImGuiBackendFlags.HasMouseCursors; // We can honor GetMouseCursor() values (optional)
+            //IO.BackendFlags |= ImGuiBackendFlags.HasSetMousePos; // We can honor io.WantSetMousePos requests (optional, rarely used)
             //IO.BackendPlatformName = new NullTerminatedString("imgui_impl_win32".ToCharArray());
             IO.KeyMap[(int) ImGuiKey.Tab] = (int) SDL.SDL_Scancode.SDL_SCANCODE_TAB;
             IO.KeyMap[(int) ImGuiKey.LeftArrow] = (int) SDL.SDL_Scancode.SDL_SCANCODE_LEFT;
@@ -99,29 +99,26 @@ namespace BGFX.Net.Test
             IO.KeyMap[(int) ImGuiKey.Z] = (int) SDL.SDL_Scancode.SDL_SCANCODE_Z;
             IO.Fonts.AddFontDefault();
             IO.Fonts.GetTexDataAsRGBA32(out IntPtr pixels, out var fwidth, out var fheight);
-            IO.Fonts.TexID = new IntPtr(Bgfx.CreateTexture2D((ushort) fwidth, (ushort) fheight, false, 1,
-                Bgfx.TextureFormat.RGBA8,
+            IO.Fonts.SetTexID(new IntPtr(Bgfx.CreateTexture2D((ushort) fwidth, (ushort) fheight, false, 1,
+                (Bgfx.TextureFormat) Bgfx.TextureFormat.RGBA8,
                 (Bgfx.SamplerFlags.U_CLAMP | Bgfx.SamplerFlags.V_CLAMP | Bgfx.SamplerFlags.MIN_POINT |
-                         Bgfx.SamplerFlags.MAG_POINT|Bgfx.SamplerFlags.MIP_POINT), Bgfx.MakeRef(pixels, (uint) (4 * fwidth * fheight))).Idx);
-            var transform = new Bgfx.Transform();
-            transform.Allocate(1);
-            transform.Data[4] = 43;
+                 Bgfx.SamplerFlags.MAG_POINT | Bgfx.SamplerFlags.MIP_POINT),
+                Bgfx.MakeRef(pixels, (uint) (4 * fwidth * fheight))).Idx));
             Bgfx.SetViewClear(0, (ushort) (Bgfx.ClearFlags.COLOR | Bgfx.ClearFlags.DEPTH), 0x6495edff, 0, 0);
             Bgfx.SetViewMode(0, Bgfx.ViewMode.SEQUENTIAL);
             Bgfx.SetViewMode(255, Bgfx.ViewMode.SEQUENTIAL);
-            Bgfx.SetDebug( Bgfx.DebugFlags.NONE);
-            Bgfx.Reset(resolutionWidth, resolutionHeight, Bgfx.ResetFlags.VSYNC, Bgfx.TextureFormat.BGRA8);
+            Bgfx.SetDebug(Bgfx.DebugFlags.NONE);
+            Bgfx.Reset(resolutionWidth, resolutionHeight, Bgfx.ResetFlags.VSYNC | Bgfx.ResetFlags.MSAA_X4,init.format);
             var running = true;
             var bgfxcaps = Bgfx.GetCaps();
             mtxOrtho(out var ortho, 0, resolutionWidth, resolutionHeight, 0, 0, 1000.0f, 0, bgfxcaps.Homogenousdepth);
             var ImguiVertexLayout = new Bgfx.VertexLayout();
-             
             ImguiVertexLayout.Begin(Bgfx.RendererType.NOOP);
             ImguiVertexLayout.Add(Bgfx.Attrib.POSITION,Bgfx.AttribType.FLOAT,2,false,false);
             ImguiVertexLayout.Add(Bgfx.Attrib.TEX_COORD0, Bgfx.AttribType.FLOAT, 2, false, false);
             ImguiVertexLayout.Add(Bgfx.Attrib.COLOR0,Bgfx.AttribType.UINT8,4,true,false);
             ImguiVertexLayout.End();
-            var WhitePixelTexture = Bgfx.CreateTexture2D(1,1,false,1,Bgfx.TextureFormat.RGBA8,Bgfx.SamplerFlags.V_CLAMP | Bgfx.SamplerFlags.U_CLAMP | Bgfx.SamplerFlags.MIN_POINT | Bgfx.SamplerFlags.MAG_POINT | Bgfx.SamplerFlags.MIP_POINT,new uint[] { 0xffffffff });
+            var WhitePixelTexture = Bgfx.CreateTexture2D(1,1,false,1,Bgfx.TextureFormat.RGBA8,Bgfx.SamplerFlags.V_CLAMP | Bgfx.SamplerFlags.U_CLAMP | Bgfx.SamplerFlags.MIN_POINT | Bgfx.SamplerFlags.MAG_POINT | Bgfx.SamplerFlags.MIP_POINT,new uint[] { 0x0000ffff });
             var TextureUniform = Bgfx.CreateUniform("s_texture",Bgfx.UniformType.SAMPLER,1);
             
             var ImGuiShader = LoadEffect("vs_imgui.bin","fs_imgui.bin");
@@ -130,13 +127,40 @@ namespace BGFX.Net.Test
             {
                 SDL.SDL_PollEvent(out var Event);
                 if (Event.window.type == SDL.SDL_EventType.SDL_QUIT) running = false;
-
+                var mouseState = SDL.SDL_GetMouseState(out var mouseX, out var mouseY);
+                IO.MouseDown[0] = (mouseState & SDL.SDL_BUTTON(SDL.SDL_BUTTON_LEFT)) != 0;
+                IO.MouseDown[1] = (mouseState & SDL.SDL_BUTTON(SDL.SDL_BUTTON_RIGHT)) != 0;
+                IO.MouseDown[2] = (mouseState & SDL.SDL_BUTTON(SDL.SDL_BUTTON_MIDDLE)) != 0;
+                SDL.SDL_GetWindowPosition(windowhandle, out var wx,out var wy);
+                SDL.SDL_GetGlobalMouseState(out mouseX,out mouseY);
+                mouseX -= wx;
+                mouseY -= wy;
+                IO.MousePosPrev = IO.MousePos;
+                IO.MousePos = new Vector2(mouseX,mouseY);
                 ImGui.NewFrame();
+                //ImGui.SetNextWindowSize(new Vector2(200);
                 if (ImGui.Begin("test"))
                 {
+                    if (ImGui.Button("click OS popup"))
+                    {
+                        SDL.SDL_ShowSimpleMessageBox(SDL.SDL_MessageBoxFlags.SDL_MESSAGEBOX_INFORMATION,"Cliked Button","Click Message",windowhandle);
+                    }
+
+                    if (ImGui.Button("modal popup"))
+                    {
+                        ImGui.OpenPopup("modal popup");
+                    }
                     ImGui.Text("Hello");
-                    ImGui.Button("click");
+                    if (ImGui.BeginPopupModal("modal popup"))
+                    {
+                        if (ImGui.Button("clicked"))
+                        {
+                            ImGui.CloseCurrentPopup();
+                        }
+                        ImGui.EndPopup();
+                    }
                 }
+                
                 ImGui.End();
                 ImGui.EndFrame();
                 ImGui.Render();
@@ -147,7 +171,7 @@ namespace BGFX.Net.Test
                 Bgfx.Touch(0);
                 {
                     var drawdata = ImGui.GetDrawData();
-                    ushort viewID = 255;
+                    ushort viewID = 0;
                     Bgfx.SetViewTransform( viewID, null, ortho);
                     
                     {
@@ -175,17 +199,18 @@ namespace BGFX.Net.Test
                                 {
                                     var state =  Bgfx.StateFlags.WRITE_RGB
                                                 | Bgfx.StateFlags.WRITE_A
-                                                | Bgfx.StateFlags.MSAA;
+                                                | Bgfx.StateFlags.MSAA
+                                                ;
 
-                                    var TexHandle = new Bgfx.TextureHandle();
+                                    var texHandle = new Bgfx.TextureHandle();
 
                                     if (cmd.TextureId.ToInt32() != 0)
                                     {
-                                        TexHandle.Idx = (ushort) cmd.TextureId.ToInt32();
+                                        texHandle.Idx = (ushort) cmd.TextureId.ToInt32();
                                     }
                                     else
                                     {
-                                        TexHandle.Idx = WhitePixelTexture.Idx;
+                                        texHandle.Idx = WhitePixelTexture.Idx;
                                     }
 
                                     state |= Bgfx.STATE_BLEND_FUNC(Bgfx.StateFlags.BLEND_SRC_ALPHA,Bgfx.StateFlags.BLEND_INV_SRC_ALPHA);
@@ -195,10 +220,10 @@ namespace BGFX.Net.Test
                                     ushort ww = (ushort) ((cmd.ClipRect.W > 65535.0f ? 65535.0f : cmd.ClipRect.W) - yy);
                                     Bgfx.SetScissor(xx,yy,zz,ww);
                                     Bgfx.SetState(state, 0);
-                                    Bgfx.SetTexture(0, TextureUniform, TexHandle);
+                                    Bgfx.SetTexture(0, TextureUniform, texHandle);
                                     Bgfx.SetTransientVertexBuffer(0, tvb, 0, (uint)numVertices);
                                     Bgfx.SetTransientIndexBuffer(tib, offset, cmd.ElemCount);
-                                    Bgfx.Submit((ushort)viewID, ImGuiShader.program, 0, false);
+                                    Bgfx.Submit(viewID, ImGuiShader.program, 0, false);
                                 }
                                 offset += cmd.ElemCount;
                             }

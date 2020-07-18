@@ -1967,8 +1967,16 @@ namespace BGFX.Net
             }
         }
 
-        public static void Initialize(uint resolutionWidth,uint resolutionHeight,RendererType renderer)
+        public struct Init
         {
+            public UnsafeBgfx.Init init;
+
+            public TextureFormat format => (TextureFormat)init.resolution.format;
+        }
+
+        public static Init Initialize(uint resolutionWidth,uint resolutionHeight,RendererType renderer)
+        {
+            var Result = new Init();
             UnsafeBgfx.Init init = new UnsafeBgfx.Init();
             unsafe
             {
@@ -1980,6 +1988,9 @@ namespace BGFX.Net
                 init.resolution.reset = (uint)Bgfx.ResetFlags.NONE;
                 UnsafeBgfx.init(&init);
             }
+
+            Result.init = init;
+            return Result;
         }
 
         public static IntPtr MakeRef(IntPtr data,uint size)
@@ -2213,15 +2224,32 @@ namespace BGFX.Net
                 set => handle.idx = value;
             }
         }
-        public static TextureHandle CreateTexture2D(ushort outWidth, ushort outHeight, bool b, ushort i, TextureFormat bgra8, SamplerFlags flags, IntPtr makeRef)
+        public static TextureHandle CreateTexture2D(ushort width, ushort height, bool hasmips, ushort layers, TextureFormat bgra8, SamplerFlags flags, IntPtr makeRef)
         {
             unsafe
             {
                 var texHandle = new TextureHandle
                 {
-                    handle = UnsafeBgfx.create_texture_2d(outWidth, outHeight, b, i, (UnsafeBgfx.TextureFormat)bgra8, (ulong)flags, (UnsafeBgfx.Memory*)makeRef.ToPointer())
+                    handle = UnsafeBgfx.create_texture_2d(width, height, hasmips, layers, (UnsafeBgfx.TextureFormat)bgra8, (ulong)flags, (UnsafeBgfx.Memory*)makeRef.ToPointer())
                 };
                 return texHandle;
+            }
+        }
+
+        public static void UpdateTexture2D(TextureHandle texture,ushort layer,byte mip,ushort x,ushort y,ushort width,ushort height,IntPtr memory,ushort pitch)
+        {
+            unsafe
+            {
+                UnsafeBgfx.update_texture_2d(texture.handle,layer,mip,x,y,width,height, (UnsafeBgfx.Memory*)memory.ToPointer(),pitch);
+            }
+        }
+
+        public static void UpdateTexture2D<T>(TextureHandle texture, ushort layer, byte mip, ushort x, ushort y, ushort width, ushort height, T[] pixelBytes, ushort pitch) where T : struct
+        {
+            unsafe
+            {
+                var data = CopyIntoBuffer(pixelBytes);
+                UnsafeBgfx.update_texture_2d(texture.handle,layer,mip,x,y,width,height,data,pitch);
             }
         }
 
@@ -2286,7 +2314,7 @@ namespace BGFX.Net
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static StateFlags STATE_BLEND_FUNC_SEPARATE(StateFlags srcRGB,StateFlags dstRGB,StateFlags srcA,StateFlags dstA)
         {
-            return(StateFlags)( (ulong)(srcRGB) | ((ulong)(dstRGB) << 4)| (ulong)(srcA) | (((ulong)(dstA) << 4) << 8)) ;
+            return (StateFlags) ((((ulong)(srcRGB) | ((ulong)(dstRGB) << 4)))| (((ulong) (srcA) | ((ulong) (dstA) << 4)) << 8));
         }
 
         public static void Submit(ushort viewId, ProgramHandle program, uint depth, bool flags)
